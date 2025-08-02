@@ -29,7 +29,7 @@ This code was collaboratively developed by:
 - Reviewer: Code review and suggestions
 - Reviewer2_Strict: Strict code review
 - QA_Specialist: Quality assurance and testing
-- Dumb_Tester: Requirements and feedback
+- Dumb_User: Requirements and feedback
 """
 
 

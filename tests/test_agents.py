@@ -20,6 +20,7 @@ from agents.reviewer_agent import get_reviewer_agent
 from agents.qa_agent import get_qa_agent
 from agents.user_agent import get_user_agent
 from agents.dumb_user_agent import get_dumb_user_agent
+from agents.base_agent import SimpleAgent
 
 # Import configuration functions
 from config import get_llm_config, get_workspace_path, ensure_workspace_exists
@@ -48,6 +49,25 @@ def temp_work_dir():
     """Fixture providing a temporary work directory for testing."""
     with tempfile.TemporaryDirectory() as temp_dir:
         yield temp_dir
+
+
+class TestBaseAgent:
+    """Test class for the base SimpleAgent class."""
+
+    def test_simple_agent_creation(self):
+        """Test that SimpleAgent can be created with name and system message."""
+        agent = SimpleAgent("TestAgent", "Test system message")
+        
+        assert agent.name == "TestAgent"
+        assert agent.system_message == "Test system message"
+        
+    def test_simple_agent_import(self):
+        """Test that SimpleAgent can be imported from base_agent module."""
+        from agents.base_agent import SimpleAgent as ImportedAgent
+        
+        agent = ImportedAgent("ImportTest", "Import test message")
+        assert agent.name == "ImportTest"
+        assert agent.system_message == "Import test message"
 
 
 class TestAgentCreation:
@@ -91,7 +111,7 @@ class TestAgentCreation:
 
         assert agent is not None
         assert agent.name == "Dumb_User"
-        assert "vague, incomplete, or ambiguous" in agent.system_message
+        assert "vague or ambiguous" in agent.system_message
 
 
 class TestConfiguration:

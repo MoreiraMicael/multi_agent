@@ -1,26 +1,13 @@
 """
 Reviewer Agent 2 Module (Stricter)
 
-This module defines Reviewer Agent 2, a stricter reviewer focused on ensuring the final code is not only correct, but also robust, production-ready, and adheres to the highest standards.
+This module defines Reviewer Agent 2, a stricter reviewer focused on ensuring 
+the final code is not only correct, but also robust, production-ready, and 
+adheres to the highest standards.
 """
 
-
-
 from typing import Any
-
-class SimpleAgent:
-    """
-    Simple agent class for demonstration purposes.
-    """
-    def __init__(self: 'SimpleAgent', name: str, system_message: str) -> None:
-        """
-        Initialize the SimpleAgent.
-        Args:
-            name (str): The name of the agent.
-            system_message (str): The system message for the agent.
-        """
-        self.name: str = name
-        self.system_message: str = system_message
+from .base_agent import SimpleAgent
 
 
 
