@@ -1,7 +1,10 @@
 import re
 import requests
 import json
+import logging
 from typing import List
+
+logger = logging.getLogger(__name__)
 
 def extract_python_code_blocks(content: str) -> List[str]:
     code_blocks = []
@@ -20,17 +23,27 @@ def extract_python_code_blocks(content: str) -> List[str]:
     return code_blocks
 
 def save_generated_code(code_blocks: List[str], output_file: str) -> bool:
+    """
+    Save the last code block from a list to a file.
+    
+    Args:
+        code_blocks (List[str]): List of code blocks extracted from conversation
+        output_file (str): Path to output file
+        
+    Returns:
+        bool: True if successful, False otherwise
+    """
     if not code_blocks:
-        print("No Python code blocks found in the conversation.")
+        logger.warning("No Python code blocks found in the conversation.")
         return False
     final_code = code_blocks[-1].strip()
     try:
         with open(output_file, "w", encoding="utf-8") as f:
             f.write(final_code)
-        print(f"Generated code saved to: {output_file}")
+        logger.info(f"Generated code saved to: {output_file}")
         return True
     except Exception as e:
-        print(f"Error saving code to {output_file}: {e}")
+        logger.error(f"Error saving code to {output_file}: {e}")
         return False
 
 # Load Ollama config from OAI_CONFIG_LIST

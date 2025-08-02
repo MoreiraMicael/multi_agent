@@ -6,9 +6,12 @@ A sophisticated multi-agent system built with AutoGen that demonstrates collabor
 
 - **Modular Agent Architecture**: Separate agent modules for different roles
 - **Multiple Agent Types**: Coder, Reviewer, QA Specialist, User, and Dumb User agents
+- **Agent Registry System**: Extensible factory pattern for adding new agent types
 - **Configurable LLM Backend**: Works with Ollama and other OpenAI-compatible APIs
+- **Environment Variable Support**: Customizable workspace paths via `MULTI_AGENT_WORKSPACE_PATH`
 - **Automated Code Generation**: Extracts and saves generated Python code
 - **Comprehensive Testing**: pytest-based test suite for all components
+- **Logging Support**: Structured logging for debugging and monitoring
 - **VS Code Integration**: Optimized for development in Visual Studio Code
 - **Code Quality Tools**: Black formatting, Flake8 linting, and import sorting
 
@@ -16,6 +19,8 @@ A sophisticated multi-agent system built with AutoGen that demonstrates collabor
 
 ```
 ├── agents/                     # Agent module definitions
+│   ├── base_agent.py          # Base SimpleAgent class
+│   ├── registry.py            # Agent registry and factory system
 │   ├── coder_agent.py         # Expert Python coder agent
 │   ├── reviewer_agent.py      # Code review specialist agent
 │   ├── qa_agent.py           # Quality assurance agent
@@ -196,6 +201,32 @@ Modify `config.py` to adjust:
 - Maximum conversation rounds
 - Workspace paths
 - Chat behavior
+
+#### Environment Variables
+
+The system supports the following environment variables for configuration:
+
+- **`MULTI_AGENT_WORKSPACE_PATH`**: Override the default workspace directory path
+  ```bash
+  export MULTI_AGENT_WORKSPACE_PATH="/custom/workspace/path"
+  ```
+
+#### Agent Registry
+
+The system includes an extensible agent registry that allows for easy addition of new agent types:
+
+```python
+from agents.registry import register_agent, create_agent
+
+# Register a custom agent
+def my_custom_agent(llm_config, work_dir):
+    return SimpleAgent("CustomAgent", "Custom system message")
+
+register_agent("custom", my_custom_agent)
+
+# Create the agent
+agent = create_agent("custom", llm_config, work_dir)
+```
 
 ### VS Code Configuration
 

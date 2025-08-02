@@ -51,6 +51,73 @@ def temp_work_dir():
         yield temp_dir
 
 
+class TestAgentRegistry:
+    """Test class for agent registry functionality."""
+
+    def test_agent_registry_creation(self):
+        """Test that agent registry can be created and used."""
+        from agents.registry import AgentRegistry
+        
+        registry = AgentRegistry()
+        assert registry.list_agents() == []
+        
+    def test_agent_registration_and_creation(self, mock_llm_config, temp_work_dir):
+        """Test registering and creating agents through registry."""
+        from agents.registry import AgentRegistry, get_agent_registry
+        from agents.coder_agent import get_coder_agent
+        
+        registry = AgentRegistry()
+        registry.register("test_coder", get_coder_agent)
+        
+        agent = registry.create_agent("test_coder", mock_llm_config, temp_work_dir)
+        assert agent is not None
+        assert agent.name == "Coder"
+        
+    def test_global_registry_has_default_agents(self):
+        """Test that global registry has default agents registered."""
+        from agents.registry import get_agent_registry
+        
+        registry = get_agent_registry()
+        agents = registry.list_agents()
+        
+        expected_agents = ["coder", "reviewer", "reviewer2", "qa", "user", "dumb_user"]
+        for agent_name in expected_agents:
+            assert agent_name in agents
+
+    def test_global_registry_can_create_agents(self, mock_llm_config, temp_work_dir):
+        """Test that global registry can create default agents."""
+        from agents.registry import create_agent
+        
+        agent = create_agent("coder", mock_llm_config, temp_work_dir)
+        assert agent is not None
+        assert agent.name == "Coder"
+
+
+class TestEnvironmentVariables:
+    """Test class for environment variable functionality."""
+
+    def test_workspace_path_environment_override(self):
+        """Test that MULTI_AGENT_WORKSPACE_PATH can override workspace path."""
+        import os
+        import tempfile
+        from config import get_workspace_path
+        
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # Set environment variable
+            original_value = os.environ.get('MULTI_AGENT_WORKSPACE_PATH')
+            os.environ['MULTI_AGENT_WORKSPACE_PATH'] = temp_dir
+            
+            try:
+                workspace_path = get_workspace_path()
+                assert workspace_path == os.path.abspath(temp_dir)
+            finally:
+                # Restore original environment
+                if original_value is not None:
+                    os.environ['MULTI_AGENT_WORKSPACE_PATH'] = original_value
+                else:
+                    os.environ.pop('MULTI_AGENT_WORKSPACE_PATH', None)
+
+
 class TestBaseAgent:
     """Test class for the base SimpleAgent class."""
 

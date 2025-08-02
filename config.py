@@ -7,7 +7,15 @@ including model settings, workspace paths, and LLM configuration.
 
 import os
 import json
+import logging
 from typing import Dict, Any
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 
 # Model Configuration
@@ -17,6 +25,7 @@ BASE_URL = "http://localhost:11434/v1"
 API_KEY = "ollama"
 
 # Workspace Configuration
+# Can be overridden with MULTI_AGENT_WORKSPACE_PATH environment variable
 WORKSPACE_PATH = os.path.join(os.path.dirname(__file__), "coding_workspace")
 CONFIG_FILE_PATH = os.path.join(os.path.dirname(__file__), "OAI_CONFIG_LIST")
 
@@ -61,8 +70,8 @@ def get_llm_config() -> Dict[str, Any]:
             }
 
     except Exception as e:
-        print(
-            f"Warning: Could not load config file. Using default configuration. Error: {e}"
+        logger.warning(
+            f"Could not load config file. Using default configuration. Error: {e}"
         )
         # Fallback configuration
         llm_config = {
@@ -85,11 +94,14 @@ def get_llm_config() -> Dict[str, Any]:
 def get_workspace_path() -> str:
     """
     Get the absolute path to the coding workspace directory.
+    
+    Can be overridden by setting the MULTI_AGENT_WORKSPACE_PATH environment variable.
 
     Returns:
         str: Absolute path to the workspace
     """
-    return os.path.abspath(WORKSPACE_PATH)
+    workspace_path = os.environ.get('MULTI_AGENT_WORKSPACE_PATH', WORKSPACE_PATH)
+    return os.path.abspath(workspace_path)
 
 
 def ensure_workspace_exists() -> None:
@@ -99,7 +111,7 @@ def ensure_workspace_exists() -> None:
     workspace_path = get_workspace_path()
     if not os.path.exists(workspace_path):
         os.makedirs(workspace_path)
-        print(f"Created workspace directory: {workspace_path}")
+        logger.info(f"Created workspace directory: {workspace_path}")
 
 
 def get_chat_config() -> Dict[str, Any]:

@@ -1,4 +1,5 @@
 import os
+import logging
 from config import get_llm_config, get_workspace_path, ensure_workspace_exists
 from agents.coder_agent import get_coder_agent
 from agents.reviewer_agent import get_reviewer_agent
@@ -6,56 +7,128 @@ from agents.reviewer_agent2 import get_reviewer_agent2
 from agents.qa_agent import get_qa_agent
 from agents.user_agent import get_user_agent
 from agents.dumb_user_agent import get_dumb_user_agent
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
+
+logger = logging.getLogger(__name__)
 
 
-def simulate_agent_conversation(scenario: dict, num_rounds: Optional[int] = None) -> Optional[str]:
+def _create_agents(llm_config: Dict[str, Any], work_dir: str, use_dumb_user: bool) -> Dict[str, Any]:
+    """
+    Create all required agents for the conversation.
+    
+    Args:
+        llm_config (Dict[str, Any]): LLM configuration
+        work_dir (str): Working directory path
+        use_dumb_user (bool): Whether to use dumb user agent or regular user
+        
+    Returns:
+        Dict[str, Any]: Dictionary containing all created agents
+    """
+    coder = get_coder_agent(llm_config, work_dir)
+    reviewer = get_reviewer_agent(llm_config, work_dir)
+    reviewer2 = get_reviewer_agent2(llm_config, work_dir)
+    qa_specialist = get_qa_agent(llm_config, work_dir)
+    user = get_dumb_user_agent(llm_config, work_dir) if use_dumb_user else get_user_agent(llm_config, work_dir)
+    
+    from agents.test_runner_agent import TestRunnerAgent
+    test_runner = TestRunnerAgent(work_dir)
+    
+    agents = {
+        'coder': coder,
+        'reviewer': reviewer,
+        'reviewer2': reviewer2,
+        'qa_specialist': qa_specialist,
+        'user': user,
+        'test_runner': test_runner
+    }
+    
+    logger.info(f"✓ Created agents: {coder.name}, {reviewer.name}, {reviewer2.name}, {qa_specialist.name}, {user.name}, {test_runner.name}")
+    return agents
+
+
+def _load_existing_code(output_path: str) -> str:
+    """
+    Load existing code from file if it exists.
+    
+    Args:
+        output_path (str): Path to the output file
+        
+    Returns:
+        str: Existing code content or empty string
+    """
+    existing_code = ""
+    if os.path.exists(output_path):
+        try:
+            with open(output_path, "r", encoding="utf-8") as f:
+                existing_code = f.read()
+            logger.info(f"📄 Loaded existing code from {output_path} as starting point.")
+        except Exception as e:
+            logger.error(f"Could not read existing file {output_path}: {e}")
+    return existing_code
+
+
+def _initialize_conversation_state(
+    initial_prompt: str, existing_code: str
+) -> Dict[str, Any]:
+    """
+    Initialize the conversation state dictionary.
+    
+    Args:
+        initial_prompt (str): The initial prompt for the conversation
+        existing_code (str): Any existing code to start with
+        
+    Returns:
+        Dict[str, Any]: Initialized conversation state
+    """
+    return {
+        "prompt": initial_prompt,
+        "code": existing_code,
+        "user_feedback": "",
+        "reviewer_feedback": "",
+        "reviewer2_feedback": "",
+        "qa_feedback": ""
+    }
+
+
+def simulate_agent_conversation(
+    scenario: Dict[str, Any], num_rounds: Optional[int] = None
+) -> Optional[str]:
+    """
+    Simulate a multi-agent conversation to develop Python code.
+    
+    Args:
+        scenario (Dict[str, Any]): Scenario configuration containing prompt,
+                                  description, and other settings
+        num_rounds (Optional[int]): Number of conversation rounds to execute.
+                                   If None, uses scenario default or 3
+    
+    Returns:
+        Optional[str]: Generated code if successful, None otherwise
+    """
     from utils import call_ollama, extract_python_code_blocks, save_generated_code
-    """
-    Simulate a multi-agent conversation to develop Python code, with optional ImprovementAgent step.
-    """
     ensure_workspace_exists()
     llm_config = get_llm_config()
     work_dir = get_workspace_path()
     initial_prompt = scenario["prompt"]
     use_dumb_user = scenario.get("use_dumb_user", False)
     rounds = num_rounds if num_rounds is not None else scenario.get("num_rounds", 3)
-    print("Simulating multi-agent conversation...")
-    print(f"Scenario: {scenario.get('description', '')}")
-    print(f"Initial prompt: {initial_prompt}")
-    print("-" * 60)
+    logger.info("Simulating multi-agent conversation...")
+    logger.info(f"Scenario: {scenario.get('description', '')}")
+    logger.info(f"Initial prompt: {initial_prompt}")
+    logger.info("-" * 60)
     try:
-        coder = get_coder_agent(llm_config, work_dir)
-        reviewer = get_reviewer_agent(llm_config, work_dir)
-        reviewer2 = get_reviewer_agent2(llm_config, work_dir)
-        qa_specialist = get_qa_agent(llm_config, work_dir)
-        user = get_dumb_user_agent(llm_config, work_dir) if use_dumb_user else get_user_agent(llm_config, work_dir)
-        from agents.test_runner_agent import TestRunnerAgent
-        test_runner = TestRunnerAgent(work_dir)
-        print(f"✓ Created agents: {coder.name}, {reviewer.name}, {reviewer2.name}, {qa_specialist.name}, {user.name}, {test_runner.name}")
+        agents = _create_agents(llm_config, work_dir, use_dumb_user)
+        
         # Determine test mode: 'script' or 'pytest' (default to 'script')
         test_mode = scenario.get('test_mode', 'script')
 
-        # Shared state for conversation
-        # If the scenario output file exists, use its contents as the starting code
+        # Load existing code if available
         file_name = scenario.get("file_name", "multi_agent_generated_code.py")
         output_path = os.path.join(work_dir, file_name)
-        existing_code = ""
-        if os.path.exists(output_path):
-            try:
-                with open(output_path, "r", encoding="utf-8") as f:
-                    existing_code = f.read()
-                print(f"\n📄 Loaded existing code from {output_path} as starting point.")
-            except Exception as e:
-                print(f"Could not read existing file {output_path}: {e}")
-        conversation_state = {
-            "prompt": initial_prompt,
-            "code": existing_code,
-            "user_feedback": "",
-            "reviewer_feedback": "",
-            "reviewer2_feedback": "",
-            "qa_feedback": ""
-        }
+        existing_code = _load_existing_code(output_path)
+        
+        # Initialize conversation state
+        conversation_state = _initialize_conversation_state(initial_prompt, existing_code)
 
         import re
         def code_is_complete(code: str) -> bool:
@@ -92,7 +165,8 @@ def simulate_agent_conversation(scenario: dict, num_rounds: Optional[int] = None
                 try:
                     return custom_test(file_path)
                 except Exception as e:
-                    print(f"Custom test function failed: {e}\n{traceback.format_exc()}")
+                    logger.error(f"Custom test function failed: {e}")
+                    logger.debug(traceback.format_exc())
                     return False
             try:
                 module_name = os.path.splitext(os.path.basename(file_path))[0]
@@ -104,7 +178,8 @@ def simulate_agent_conversation(scenario: dict, num_rounds: Optional[int] = None
                 # Default: pass if file loads without error
                 return True
             except Exception as e:
-                print(f"Test failed: {e}\n{traceback.format_exc()}")
+                logger.error(f"Test failed: {e}")
+                logger.debug(traceback.format_exc())
                 return False
 
         def code_quality_score(code: str, file_path: str) -> int:
@@ -120,7 +195,8 @@ def simulate_agent_conversation(scenario: dict, num_rounds: Optional[int] = None
                 if run_python_tests_on_code(temp_path):
                     score += 100
             except Exception as e:
-                print(f"Error scoring code: {e}\n{traceback.format_exc()}")
+                logger.error(f"Error scoring code: {e}")
+                logger.debug(traceback.format_exc())
             finally:
                 if os.path.exists(temp_path):
                     os.remove(temp_path)
@@ -129,7 +205,7 @@ def simulate_agent_conversation(scenario: dict, num_rounds: Optional[int] = None
 
 
         for round_num in range(1, rounds + 1):
-            print(f"\n--- Conversation Round {round_num} ---")
+        logger.info(f"Conversation Round {round_num}")
             # User step: can provide feedback in later rounds
             if round_num == 1:
                 user_message = conversation_state["prompt"]
@@ -275,5 +351,7 @@ def simulate_agent_conversation(scenario: dict, num_rounds: Optional[int] = None
                 print(f"Error running ImprovementAgent: {e}")
         return output_path
     except Exception as e:
-        print(f"Error during simulation: {e}")
+        except Exception as e:
+        logger.error(f"Error during simulation: {e}")
+        raise
         return None
