@@ -129,6 +129,14 @@ def simulate_agent_conversation(
         
         # Initialize conversation state
         conversation_state = _initialize_conversation_state(initial_prompt, existing_code)
+        
+        # Extract agents for backward compatibility
+        coder = agents['coder']
+        reviewer = agents['reviewer']
+        reviewer2 = agents['reviewer2']
+        qa_specialist = agents['qa_specialist']
+        user = agents['user']
+        test_runner = agents['test_runner']
 
         import re
         def code_is_complete(code: str) -> bool:
@@ -205,7 +213,7 @@ def simulate_agent_conversation(
 
 
         for round_num in range(1, rounds + 1):
-        logger.info(f"Conversation Round {round_num}")
+            logger.info(f"Conversation Round {round_num}")
             # User step: can provide feedback in later rounds
             if round_num == 1:
                 user_message = conversation_state["prompt"]
@@ -348,10 +356,8 @@ def simulate_agent_conversation(
                 print("\n🛠️  Triggering ImprovementAgent to review agent class source files...")
                 improvement_agent.review_agents()
             except Exception as e:
-                print(f"Error running ImprovementAgent: {e}")
+                logger.error(f"Error running ImprovementAgent: {e}")
         return output_path
     except Exception as e:
-        except Exception as e:
         logger.error(f"Error during simulation: {e}")
         raise
-        return None
