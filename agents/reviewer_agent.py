@@ -5,23 +5,8 @@ This module defines the Reviewer agent responsible for reviewing code
 written by the Coder agent and providing feedback and suggestions.
 """
 
-
-
 from typing import Any
-
-class SimpleAgent:
-    """
-    Simple agent class for demonstration purposes.
-    """
-    def __init__(self: 'SimpleAgent', name: str, system_message: str) -> None:
-        """
-        Initialize the SimpleAgent.
-        Args:
-            name (str): The name of the agent.
-            system_message (str): The system message for the agent.
-        """
-        self.name: str = name
-        self.system_message: str = system_message
+from .base_agent import SimpleAgent
 
 
 

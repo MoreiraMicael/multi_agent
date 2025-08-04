@@ -20,6 +20,7 @@ from agents.reviewer_agent import get_reviewer_agent
 from agents.qa_agent import get_qa_agent
 from agents.user_agent import get_user_agent
 from agents.dumb_user_agent import get_dumb_user_agent
+from agents.base_agent import SimpleAgent
 
 # Import configuration functions
 from config import get_llm_config, get_workspace_path, ensure_workspace_exists
@@ -48,6 +49,92 @@ def temp_work_dir():
     """Fixture providing a temporary work directory for testing."""
     with tempfile.TemporaryDirectory() as temp_dir:
         yield temp_dir
+
+
+class TestAgentRegistry:
+    """Test class for agent registry functionality."""
+
+    def test_agent_registry_creation(self):
+        """Test that agent registry can be created and used."""
+        from agents.registry import AgentRegistry
+        
+        registry = AgentRegistry()
+        assert registry.list_agents() == []
+        
+    def test_agent_registration_and_creation(self, mock_llm_config, temp_work_dir):
+        """Test registering and creating agents through registry."""
+        from agents.registry import AgentRegistry, get_agent_registry
+        from agents.coder_agent import get_coder_agent
+        
+        registry = AgentRegistry()
+        registry.register("test_coder", get_coder_agent)
+        
+        agent = registry.create_agent("test_coder", mock_llm_config, temp_work_dir)
+        assert agent is not None
+        assert agent.name == "Coder"
+        
+    def test_global_registry_has_default_agents(self):
+        """Test that global registry has default agents registered."""
+        from agents.registry import get_agent_registry
+        
+        registry = get_agent_registry()
+        agents = registry.list_agents()
+        
+        expected_agents = ["coder", "reviewer", "reviewer2", "qa", "user", "dumb_user"]
+        for agent_name in expected_agents:
+            assert agent_name in agents
+
+    def test_global_registry_can_create_agents(self, mock_llm_config, temp_work_dir):
+        """Test that global registry can create default agents."""
+        from agents.registry import create_agent
+        
+        agent = create_agent("coder", mock_llm_config, temp_work_dir)
+        assert agent is not None
+        assert agent.name == "Coder"
+
+
+class TestEnvironmentVariables:
+    """Test class for environment variable functionality."""
+
+    def test_workspace_path_environment_override(self):
+        """Test that MULTI_AGENT_WORKSPACE_PATH can override workspace path."""
+        import os
+        import tempfile
+        from config import get_workspace_path
+        
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # Set environment variable
+            original_value = os.environ.get('MULTI_AGENT_WORKSPACE_PATH')
+            os.environ['MULTI_AGENT_WORKSPACE_PATH'] = temp_dir
+            
+            try:
+                workspace_path = get_workspace_path()
+                assert workspace_path == os.path.abspath(temp_dir)
+            finally:
+                # Restore original environment
+                if original_value is not None:
+                    os.environ['MULTI_AGENT_WORKSPACE_PATH'] = original_value
+                else:
+                    os.environ.pop('MULTI_AGENT_WORKSPACE_PATH', None)
+
+
+class TestBaseAgent:
+    """Test class for the base SimpleAgent class."""
+
+    def test_simple_agent_creation(self):
+        """Test that SimpleAgent can be created with name and system message."""
+        agent = SimpleAgent("TestAgent", "Test system message")
+        
+        assert agent.name == "TestAgent"
+        assert agent.system_message == "Test system message"
+        
+    def test_simple_agent_import(self):
+        """Test that SimpleAgent can be imported from base_agent module."""
+        from agents.base_agent import SimpleAgent as ImportedAgent
+        
+        agent = ImportedAgent("ImportTest", "Import test message")
+        assert agent.name == "ImportTest"
+        assert agent.system_message == "Import test message"
 
 
 class TestAgentCreation:
@@ -91,7 +178,7 @@ class TestAgentCreation:
 
         assert agent is not None
         assert agent.name == "Dumb_User"
-        assert "vague, incomplete, or ambiguous" in agent.system_message
+        assert "vague or ambiguous" in agent.system_message
 
 
 class TestConfiguration:

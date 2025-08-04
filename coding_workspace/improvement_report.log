@@ -2,32 +2,31 @@
 
 ## Review of coder_agent.py
 - Code Quality Issues:
-  Line 57 exceeds 100 characters.
+  Line 42 exceeds 100 characters.
 
 ## Review of reviewer_agent.py
 - Code Quality Issues:
-  Line 43 exceeds 100 characters.
+  Line 28 exceeds 100 characters.
 
 ## Review of reviewer_agent2.py
 - Code Quality Issues:
-  Line 4 exceeds 100 characters.
-  Line 42 exceeds 100 characters.
-  Line 52 exceeds 100 characters.
-  Line 53 exceeds 100 characters.
+  Line 29 exceeds 100 characters.
+  Line 39 exceeds 100 characters.
+  Line 40 exceeds 100 characters.
 
 ## Review of qa_agent.py
 - Code Quality Issues:
-  Line 43 exceeds 100 characters.
+  Line 28 exceeds 100 characters.
 
 ## Review of user_agent.py
 - Code Quality Issues:
-  Line 58 exceeds 100 characters.
+  Line 43 exceeds 100 characters.
 
 ## Review of dumb_user_agent.py
 - Code Quality Issues:
-  Line 43 exceeds 100 characters.
-  Line 52 exceeds 100 characters.
-  Line 57 exceeds 100 characters.
+  Line 28 exceeds 100 characters.
+  Line 37 exceeds 100 characters.
+  Line 42 exceeds 100 characters.
 
 ## Review of improvement_agent.py
 - Code Quality Issues:
